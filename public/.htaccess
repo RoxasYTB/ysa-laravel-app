@@ -1,0 +1,42 @@
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # Handle Authorization Header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Redirect Trailing Slashes If Not A Folder...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} (.+)/$
+    RewriteRule ^ %1 [L,R=301]
+
+    # Send Requests To Front Controller...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+
+    # Empêcher l'accès au fichier .htaccess
+    <Files .htaccess>
+        Require all denied
+    </Files>
+
+    # Empêcher l'accès aux fichiers .env, .git, et autres fichiers sensibles
+    <FilesMatch "^(\.env|\.git)">
+        Require all denied
+    </FilesMatch>
+
+    <FilesMatch "^\.">
+    Require all denied
+    </FilesMatch>
+
+    # Désactiver l'affichage des répertoires
+    Options -Indexes
+
+    # Forcer la connexion HTTPS
+    RewriteCond %{HTTPS} off
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
