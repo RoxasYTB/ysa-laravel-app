@@ -12,8 +12,11 @@ class ContentSecurityPolicy
     {
         $response = $next($request);
 
-        $response->headers->set('Content-Security-Policy', "default-src 'none'; script-src 'self'; 
-        connect-src 'self'; img-src 'self'; style-src 'self';");
+        if (method_exists($response, 'header')) {
+            if (!$response->headers->has('Content-Security-Policy')) {
+                $response->header('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';");
+            }
+        }
 
         return $response;
     }

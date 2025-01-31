@@ -7,6 +7,8 @@ use App\Http\Controllers\TermsController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\AntiClickjacking; 
 use App\Http\Middleware\ContentSecurityPolicy;  
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\LogController;
 
 Route::middleware([AntiClickjacking::class, ContentSecurityPolicy::class])->group(function () {
     Route::get('/', function () {
@@ -33,7 +35,15 @@ Route::middleware([AntiClickjacking::class, ContentSecurityPolicy::class])->grou
         ->only(['index', 'store', 'edit', 'destroy', 'update'])
         ->middleware(['auth', 'verified']);
     
+    Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
+    Route::post('login', [LoginController::class, 'login']);
+    Route::post('logout', [LoginController::class, 'logout'])->name('logout');
+    
     require __DIR__.'/auth.php';
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/logs', [LogController::class, 'index'])->name('logs.index');
 });
 
 

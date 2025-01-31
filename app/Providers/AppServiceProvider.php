@@ -19,6 +19,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Empêcher la mise en cache des vues en développement
+        if (config('app.env') === 'local') {
+            \View::share('now', time());
+        }
     }
 }

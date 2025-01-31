@@ -10,10 +10,11 @@ class AntiClickjacking
     public function handle(Request $request, Closure $next)
     {
         $response = $next($request);
-
-        // Ajouter l'en-tête X-Frame-Options pour bloquer l'inclusion dans des iframes
-        $response->headers->set('X-Frame-Options', 'DENY'); // OU 'SAMEORIGIN' si nécessaire
-
+        
+        if (method_exists($response, 'header')) {
+            $response->header('X-Frame-Options', 'DENY');
+        }
+        
         return $response;
     }
 }
