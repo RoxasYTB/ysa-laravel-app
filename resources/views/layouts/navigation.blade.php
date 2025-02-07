@@ -21,6 +21,10 @@
                     {{ __('Idées') }}
                 </x-nav-link>
 
+                <x-nav-link :href="route('logs.index')" :active="request()->routeIs('logs.index')">
+                    {{ __('Logs') }}
+                </x-nav-link>
+
 
 
             </div>
