@@ -262,6 +262,7 @@
                 cleanDatabase();
 
                 function cleanDatabase() {
+                    cleanAlert.classList.remove('hidden');
                     cleanAlert.classList.remove('hidden', 'bg-green-100', 'bg-red-100');
                     cleanAlert.classList.add('bg-blue-100');
                     cleanMessage.textContent = 'Analyse et suppression du contenu malveillant en cours...';
@@ -283,11 +284,16 @@
                             if (data.success) {
                                 cleanAlert.classList.add('bg-green-100');
                                 cleanMessage.classList.add('text-green-700');
-                                cleanMessage.textContent = `Contenu malveillant supprimé ! Idées: ${data.stats.ideas_deleted}, Commentaires: ${data.stats.comments_deleted}`;
-
+                                
+                                let messageText = `Contenu malveillant supprimé ! Idées: ${data.stats.ideas_deleted}, Commentaires: ${data.stats.comments_deleted}`;
+                                
+                                // Add reasons if available
+                                if (data.reasons && data.reasons.length > 0) {
+                                    messageText += '<br>Raisons: ' + data.reasons.join(', ');
+                                }
+                                
+                                cleanMessage.innerHTML = messageText;
                                 console.log('Deleted items:', data.stats);
-
-
                             } else {
                                 cleanAlert.classList.add('bg-red-100');
                                 cleanMessage.classList.add('text-red-700');

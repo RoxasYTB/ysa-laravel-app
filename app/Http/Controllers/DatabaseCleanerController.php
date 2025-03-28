@@ -8,27 +8,39 @@ use Illuminate\Support\Facades\Log;
 
 class DatabaseCleanerController extends Controller
 {
-    /**
-     * Clean the database content by deleting suspicious content
-     */
-    public function clean(DatabaseCleanerService $cleaner)
+    public function clean(Request $request, DatabaseCleanerService $cleaner)
     {
         try {
-            // Log the start of cleaning
-            Log::info('Starting database cleaning process - deleting suspicious content');
+            // Collect deletion reasons
+            $reasons = [];
             
+            // Set up a listener to capture deletion reasons
+            \DB::listen(function($query) use (&$reasons) {
+                if (strpos($query->sql, '@deletion_reason') !== false && !empty($query->bindings)) {
+                    foreach ($query->bindings as $binding) {
+                        if (is_string($binding) && !in_array($binding, $reasons)) {
+                            $reasons[] = $binding;
+                        }
+                    }
+                }
+            });
+            
+            // Run the cleaner
             $stats = $cleaner->cleanDatabase();
             
-            // Log the results
-            Log::info('Database cleaned successfully', ['stats' => $stats]);
+            Log::info('Database content cleaning executed via web interface', [
+                'stats' => $stats,
+                'reasons' => $reasons,
+                'user_id' => $request->user() ? $request->user()->id : 'guest'
+            ]);
             
             return response()->json([
                 'success' => true,
-                'message' => 'Suspicious content deleted successfully',
-                'stats' => $stats
+                'message' => 'Suspicious content has been removed from the database.',
+                'stats' => $stats,
+                'reasons' => array_unique($reasons)
             ]);
         } catch (\Exception $e) {
-            // Log the error
             Log::error('Database cleaning failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()

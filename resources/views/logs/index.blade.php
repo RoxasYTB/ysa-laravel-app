@@ -229,6 +229,42 @@
             </div>
         @endif
     </div>
+  @elseif(str_contains($log->message, "Suppression du commentaire"))
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <svg class="h-5 w-5" fill="none" stroke="#FF5252" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-gray-900 dark:text-gray-100">Commentaire supprimé :</span>
+          <span class="text-sm font-medium text-gray-900 dark:text-gray-100 line-through text-red-600 dark:text-red-400">"{{ $log->context['content'] }}"</span>
+          <span class="text-sm text-gray-500 dark:text-gray-400">#{{ $log->context['comment_id'] }} sur l'idée #{{ $log->context['idea_id'] }}</span>
+          <span class="text-xs text-red-600 dark:text-red-400 ml-2 border border-red-300 dark:border-red-700 rounded-full px-2 py-0.5">{{ $log->context['deletion_reason'] }}</span>
+          <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">par utilisateur #{{ $log->context['deleted_by'] }}</span>
+        </div>
+      </div>
+      <span class="text-xs text-gray-500 dark:text-gray-400">
+        {{ $log->created_at->format('d/m/Y H:i:s') }}
+      </span>
+    </div>
+  @elseif(str_contains($log->message, "Suppression de l'idée"))
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <svg class="h-5 w-5" fill="none" stroke="#FF5252" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-gray-900 dark:text-gray-100">Idée supprimée :</span>
+          <span class="text-sm font-medium text-gray-900 dark:text-gray-100 line-through text-red-600 dark:text-red-400">"{{ $log->context['title'] }}"</span>
+          <span class="text-sm text-gray-500 dark:text-gray-400">#{{ $log->context['idea_id'] }}</span>
+          <span class="text-xs text-red-600 dark:text-red-400 ml-2 border border-red-300 dark:border-red-700 rounded-full px-2 py-0.5">{{ $log->context['deletion_reason'] }}</span>
+          <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">par utilisateur #{{ $log->context['deleted_by'] }}</span>
+        </div>
+      </div>
+      <span class="text-xs text-gray-500 dark:text-gray-400">
+        {{ $log->created_at->format('d/m/Y H:i:s') }}
+      </span>
+    </div>
   @elseif($log->message === "Nouveau commentaire ajouté sur l'idée #" . ($log->context['idea_id'] ?? ''))
   <div class="flex items-center justify-between">
     <div class="flex items-center gap-3">

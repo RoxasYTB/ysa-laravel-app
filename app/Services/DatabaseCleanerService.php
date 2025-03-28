@@ -28,21 +28,23 @@ class DatabaseCleanerService
             // Process ideas - delete suspicious ones
             $ideas = Idea::all();
             foreach ($ideas as $idea) {
-                if ($this->containsHtmlOrXss($idea->title) || 
-                    $this->containsHtmlOrXss($idea->application) || 
-                    $this->containsHtmlOrXss($idea->message)) {
-                    
+                $deletionReason = $this->detectDeletionReason($idea->title, $idea->application, $idea->message);
+                
+                if ($deletionReason) {
                     // Log the suspicious idea
                     Log::warning('Detected suspicious idea', [
                         'id' => $idea->id,
                         'title' => $idea->title,
                         'application' => $idea->application,
-                        'message_sample' => substr($idea->message, 0, 50) . '...'
+                        'message_sample' => substr($idea->message, 0, 50) . '...',
+                        'deletion_reason' => $deletionReason
                     ]);
                     
-                    // Delete the idea via HTTP request
-                    $this->deleteIdea($idea->id);
+                    // Set the deletion reason before deleting
+                    DB::statement('SET @deletion_reason = ?', [$deletionReason]);
                     
+                    // Delete the idea directly
+                    $idea->delete();
                     $stats['ideas_deleted']++;
                 }
             }
@@ -50,12 +52,18 @@ class DatabaseCleanerService
             // Process comments - delete suspicious ones
             $comments = Comment::all();
             foreach ($comments as $comment) {
-                if ($this->containsHtmlOrXss($comment->comment)) {
+                $deletionReason = $this->detectDeletionReason($comment->comment);
+                
+                if ($deletionReason) {
                     // Log the suspicious comment
                     Log::warning('Detected suspicious comment', [
                         'id' => $comment->id,
-                        'comment_sample' => substr($comment->comment, 0, 50) . '...'
+                        'comment_sample' => substr($comment->comment, 0, 50) . '...',
+                        'deletion_reason' => $deletionReason
                     ]);
+                    
+                    // Set the deletion reason before deleting
+                    DB::statement('SET @deletion_reason = ?', [$deletionReason]);
                     
                     // Delete the comment
                     $comment->delete();
@@ -64,56 +72,76 @@ class DatabaseCleanerService
             }
             
             DB::commit();
-            Log::info('Database cleaning completed', ['stats' => $stats]);
             return $stats;
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Database cleaning failed: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
+            Log::error("Database cleaning failed: " . $e->getMessage());
             throw $e;
         }
     }
     
     /**
-     * Delete an idea using the same approach as the HTTP request example
+     * Detect the reason for deletion based on content analysis
      */
-    private function deleteIdea($id)
+    private function detectDeletionReason($content, $title = null, $message = null)
     {
-        try {
-            // First approach: Use the model to delete (cleaner and more secure)
-            $idea = Idea::find($id);
-            if ($idea) {
-                $idea->delete();
-                Log::info("Deleted idea $id via model");
-                return true;
+        // If multiple content pieces are provided, check each
+        $contents = array_filter([$content, $title, $message]);
+        
+        foreach ($contents as $text) {
+            // Skip empty content
+            if (empty($text)) {
+                continue;
             }
             
-            // If model delete doesn't work for some reason, try HTTP approach
-            $baseUrl = config('app.url');
-            $token = csrf_token();
-            
-            // Perform HTTP request mimicking a form submission
-            $response = Http::withHeaders([
-                'Content-Type' => 'application/x-www-form-urlencoded',
-                'Accept' => 'text/html,application/xhtml+xml,application/xml',
-                'Referer' => "$baseUrl/ideas"
-            ])->asForm()->post("$baseUrl/ideas/$id", [
-                '_token' => $token,
-                '_method' => 'delete'
-            ]);
-            
-            if ($response->successful()) {
-                Log::info("Deleted idea $id via HTTP request");
-                return true;
-            } else {
-                Log::error("Failed to delete idea $id. Status: " . $response->status());
-                return false;
+            // Check for HTML tags
+            if ($text != strip_tags($text)) {
+                return "Contenu HTML/XML détecté";
             }
-        } catch (\Exception $e) {
-            Log::error("Error deleting idea $id: " . $e->getMessage());
-            return false;
+            
+            // Check for common XSS patterns
+            $jsPatterns = ['/javascript:/i', '/eval\(/i', '/\<script/i', '/alert\(/i', '/document\./i', '/window\./i'];
+            foreach ($jsPatterns as $pattern) {
+                if (preg_match($pattern, $text)) {
+                    return "JavaScript potentiellement malveillant détecté";
+                }
+            }
+            
+            // Check for event handlers
+            $eventPatterns = ['/on\w+=/i', '/onerror/i', '/onclick/i', '/onload/i', '/onmouseover/i'];
+            foreach ($eventPatterns as $pattern) {
+                if (preg_match($pattern, $text)) {
+                    return "Gestionnaire d'événements JavaScript détecté";
+                }
+            }
+            
+            // Check for other suspicious patterns
+            $otherPatterns = [
+                '/\<iframe/i' => "Balise iframe détectée",
+                '/\<img/i' => "Balise image potentiellement malveillante",
+                '/&#/i' => "Encodage HTML suspect détecté",
+                '/\\\u/i' => "Encodage Unicode suspect détecté",
+                '/\.cookie/i' => "Manipulation de cookies détectée",
+                '/\.location/i' => "Manipulation de l'URL détectée",
+                '/localStorage/i' => "Accès au stockage local détecté",
+                '/sessionStorage/i' => "Accès au stockage de session détecté"
+            ];
+            
+            foreach ($otherPatterns as $pattern => $reason) {
+                if (preg_match($pattern, $text)) {
+                    return $reason;
+                }
+            }
         }
+        
+        // If we reach here and the content is different from the stripped content
+        if ($content != strip_tags($content) || 
+            ($title && $title != strip_tags($title)) || 
+            ($message && $message != strip_tags($message))) {
+            return "Contenu HTML/XML détecté";
+        }
+        
+        return false;
     }
     
     /**
@@ -121,50 +149,6 @@ class DatabaseCleanerService
      */
     private function containsHtmlOrXss($content)
     {
-        if (empty($content)) {
-            return false;
-        }
-        
-        // Check for HTML tags
-        if ($content != strip_tags($content)) {
-            return true;
-        }
-        
-        // Check for common XSS patterns (extended list)
-        $xssPatterns = [
-            '/javascript:/i',
-            '/on\w+=/i',
-            '/\<script/i',
-            '/\<\/script/i',
-            '/\<iframe/i',
-            '/\<\/iframe/i',
-            '/eval\(/i',
-            '/expression\(/i',
-            '/vbscript:/i',
-            '/alert\(/i',
-            '/document\./i',
-            '/window\./i',
-            '/\.cookie/i',
-            '/\.location/i',
-            '/\<img/i',
-            '/onerror/i',
-            '/onclick/i',
-            '/onload/i',
-            '/onmouseover/i',
-            '/&#/i',
-            '/\\\u/i',
-            '/fromCharCode/i',
-            '/encodeURI/i',
-            '/localStorage/i',
-            '/sessionStorage/i',
-        ];
-        
-        foreach ($xssPatterns as $pattern) {
-            if (preg_match($pattern, $content)) {
-                return true;
-            }
-        }
-        
-        return false;
+        return (bool) $this->detectDeletionReason($content);
     }
 }

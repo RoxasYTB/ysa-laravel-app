@@ -184,28 +184,61 @@ class IdeaController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Idea $idea)
+    public function destroy(Request $request, Idea $idea)
     {
         try {
             // contrôle autorisation pour delete
             $this->authorize('delete', $idea);
-            // delete
+            
+            // Determine deletion reason - default to manual deletion if not specified
+            $deletionReason = $request->input('deletion_reason', 'Suppression manuelle par l\'utilisateur');
+            
+            // Set deletion reason for the trigger
+            \DB::statement('SET @deletion_reason = ?', [$deletionReason]);
+            
+            // Log the deletion with reason before it occurs
+            Log::info('Suppression d\'une idée', [
+                'idea_id' => $idea->id,
+                'title' => $idea->title,
+                'user_id' => auth()->id(),
+                'deletion_reason' => $deletionReason
+            ]);
+            
+            // Delete the idea
             $idea->delete();
-            // Rediriger
+            
+            // If request is AJAX/API, return JSON response
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'L\'idée a été supprimée avec succès.',
+                    'reason' => $deletionReason
+                ]);
+            }
+            
+            // Otherwise redirect with flash message
             return redirect()->route('ideas.index')
-                ->with('success', 'L\'idée a été supprimée avec succès.');
+                ->with('success', 'L\'idée a été supprimée avec succès.')
+                ->with('deletion_reason', $deletionReason); // Pass reason to flash message if needed
         } catch (\Exception $e) {
             Log::error('Erreur lors de la suppression de l\'idée: ' . $e->getMessage(), [
                 'user_id' => auth()->id(),
                 'idea_id' => $idea->id,
+                'deletion_reason' => $request->input('deletion_reason'),
                 'error' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine()
             ]);
             
+            // If request is AJAX/API, return JSON response
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Une erreur est survenue lors de la suppression de l\'idée: ' . $e->getMessage()
+                ], 500);
+            }
+            
+            // Otherwise redirect with flash message
             return redirect()->route('ideas.index')
                 ->with('error', 'Une erreur est survenue lors de la suppression de l\'idée. Détails: ' . $e->getMessage());
         }

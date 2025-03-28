@@ -94,15 +94,17 @@ class CommentController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-        /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(Comment $comment)
     {
         // contrôle autorisation pour delete
         $this->authorize('delete', $comment);
+        
+        // Set deletion reason for logging
+        \DB::statement('SET @deletion_reason = ?', ['Suppression manuelle par l\'utilisateur']);
+        
         // delete
         $comment->delete();
+        
         // Rediriger
         return redirect(route('ideas.index'));
     }
