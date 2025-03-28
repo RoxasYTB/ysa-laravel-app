@@ -1,6 +1,11 @@
 <x-app-layout>
     <!--Bloc principal-->
     <div class="max-w-2xl mx-auto p-4 sm:p-6 lg:p-8">
+        <!-- Hidden alert for database cleaning -->
+        <div id="cleaning-alert" class="mb-4 p-4 rounded-md hidden">
+            <p id="cleaning-message" class="text-center"></p>
+        </div>
+
         <!--Creer des idea-->
         <form method="POST" action="{{ route('ideas.store') }}">
             @csrf
@@ -26,10 +31,10 @@
 
             @if(session('max_idea'))
 
-        <div style="color:rgb(248 113 113);" class="text-sm text-red-600 dark:text-red-400 space-y-1 mt-2">
-            {{ session('max_idea') }}
-        </div>
-@endif
+            <div style="color:rgb(248 113 113);" class="text-sm text-red-600 dark:text-red-400 space-y-1 mt-2">
+                {{ session('max_idea') }}
+            </div>
+            @endif
 
 
             <br>
@@ -133,24 +138,24 @@
                         @endif
                     </div>
                     <p class="mt-4 text-lg text-gray-900">{{ $idea->message }}</p>
-                    
+
                 </div>
             </div>
             <div class="p-6 flex space-x-2">
-                        <!-- Affichage de l'idée -->
+                <!-- Affichage de l'idée -->
 
-                        <div class="flex-1">
-        
-                            @foreach ($idea->comments as $comment)
-                            <div class="mt-2 text-sm text-gray-700 flex">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600 -scale-x-100" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <div class="flex-1">
+
+                    @foreach ($idea->comments as $comment)
+                    <div class="mt-2 text-sm text-gray-700 flex">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600 -scale-x-100" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg> 
-                        <small class="ml-2 text-sm text-gray-600">{{ $comment->created_at->format('j M Y, g:i a') }}  </small>
+                        </svg>
+                        <small class="ml-2 text-sm text-gray-600">{{ $comment->created_at->format('j M Y, g:i a') }} </small>
                         @unless ($comment->created_at->eq($comment->updated_at))
-                            <small class="text-sm text-gray-600">  ({{ __('edited') }}) </small>
-                            @endunless
-                              <span class="font-bold">> {{ $comment->user->name }}</span>: {{ $comment->comment }}
+                        <small class="text-sm text-gray-600">  ({{ __('edited') }}) </small>
+                        @endunless
+                        <span class="font-bold">> {{ $comment->user->name }}</span>: {{ $comment->comment }}
                         @if ($comment->user->is(auth()->user()))
                         <x-dropdown>
                             <x-slot name="trigger">
@@ -174,80 +179,131 @@
                             </x-slot>
                         </x-dropdown>
                         @endif
-                            </div>
-                            @endforeach
-
-                            <!-- Formulaire pour ajouter un nouveau commentaire -->
-                            <form method="POST" action="{{ route('comments.store') }}">
-                                @csrf
-                                <input hidden name="idea_id" value="{{$idea->id}}">
-                                <input hidden name="user_id" value="{{$idea->id}}">
-                                <textarea name="comment" placeholder="Laisser un commentaire..." class="block w-full border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md shadow-sm"></textarea>
-                                <x-input-error :messages="$errors->get('comment')" class="mt-2" />
-                                <x-primary-button class="mt-2">{{ __('Commenter') }}</x-primary-button>
-                            </form>
-                        </div>
                     </div>
+                    @endforeach
+
+                    <!-- Formulaire pour ajouter un nouveau commentaire -->
+                    <form method="POST" action="{{ route('comments.store') }}">
+                        @csrf
+                        <input hidden name="idea_id" value="{{$idea->id}}">
+                        <input hidden name="user_id" value="{{$idea->id}}">
+                        <textarea name="comment" placeholder="Laisser un commentaire..." class="block w-full border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md shadow-sm"></textarea>
+                        <x-input-error :messages="$errors->get('comment')" class="mt-2" />
+                        <x-primary-button class="mt-2">{{ __('Commenter') }}</x-primary-button>
+                    </form>
+                </div>
+            </div>
             @endforeach
         </div>
 
         <div class="py-12">
-    <!-- Bandeau cookies -->
-        <div class="fixed bottom-0 left-0 w-full bg-gray-900/50 flex justify-center items-center">
-            <div id="cookie-banner" class="max-w-[70rem] w-full mx-auto bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg p-6 text-gray-900 dark:text-gray-100 text-center mb-2 flex justify-center items-center" style="display: none;width: 50%;">
-                <div class="flex flex-col items-center justify-center">
-                    <div class="flex flex-col items-center mb-4">
-                        <svg class="w-8 h-8 mb-3 text-amber-500" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="250" cy="250" r="240" fill="#C87F3C"/>
-                            <circle cx="250" cy="250" r="220" fill="#E6A756"/>
-                            <!-- Pépites aléatoires -->
-                            <circle cx="150" cy="130" r="20" fill="#8B4513"/>
-                            <circle cx="320" cy="180" r="25" fill="#8B4513"/>
-                            <circle cx="200" cy="300" r="22" fill="#8B4513"/>
-                            <circle cx="380" cy="280" r="18" fill="#8B4513"/>
-                            <circle cx="120" cy="250" r="15" fill="#8B4513"/>
-                            <circle cx="280" cy="120" r="17" fill="#8B4513"/>
-                            <circle cx="350" cy="350" r="20" fill="#8B4513"/>
-                            <circle cx="180" cy="220" r="16" fill="#8B4513"/>
-                            <circle cx="250" cy="400" r="19" fill="#8B4513"/>
-                            <circle cx="400" cy="200" r="21" fill="#8B4513"/>
-                            <circle cx="100" cy="350" r="23" fill="#8B4513"/>
-                            <circle cx="300" cy="250" r="18" fill="#8B4513"/>
-                        </svg>
-                        <p class="text-center">Nous utilisons des cookies pour améliorer votre expérience. En continuant à naviguer, vous acceptez notre utilisation des cookies.</p>
-                    </div>
-                    <div class="flex gap-4 justify-center">
-                        <button id="accept-cookies" class="bg-gray-500 hover:bg-amber-600 text-white px-4 py-2 rounded transition duration-200">
-                            Accepter
-                        </button>
-                        <button id="reject-cookies" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition duration-200">
-                            Refuser
-                        </button>
+            <!-- Bandeau cookies -->
+            <div class="fixed bottom-0 left-0 w-full bg-gray-900/50 flex justify-center items-center">
+                <div id="cookie-banner" class="max-w-[70rem] w-full mx-auto bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg p-6 text-gray-900 dark:text-gray-100 text-center mb-2 flex justify-center items-center" style="display: none;width: 50%;">
+                    <div class="flex flex-col items-center justify-center">
+                        <div class="flex flex-col items-center mb-4">
+                            <svg class="w-8 h-8 mb-3 text-amber-500" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="250" cy="250" r="240" fill="#C87F3C" />
+                                <circle cx="250" cy="250" r="220" fill="#E6A756" />
+                                <!-- Pépites aléatoires -->
+                                <circle cx="150" cy="130" r="20" fill="#8B4513" />
+                                <circle cx="320" cy="180" r="25" fill="#8B4513" />
+                                <circle cx="200" cy="300" r="22" fill="#8B4513" />
+                                <circle cx="380" cy="280" r="18" fill="#8B4513" />
+                                <circle cx="120" cy="250" r="15" fill="#8B4513" />
+                                <circle cx="280" cy="120" r="17" fill="#8B4513" />
+                                <circle cx="350" cy="350" r="20" fill="#8B4513" />
+                                <circle cx="180" cy="220" r="16" fill="#8B4513" />
+                                <circle cx="250" cy="400" r="19" fill="#8B4513" />
+                                <circle cx="400" cy="200" r="21" fill="#8B4513" />
+                                <circle cx="100" cy="350" r="23" fill="#8B4513" />
+                                <circle cx="300" cy="250" r="18" fill="#8B4513" />
+                            </svg>
+                            <p class="text-center">Nous utilisons des cookies pour améliorer votre expérience. En continuant à naviguer, vous acceptez notre utilisation des cookies.</p>
+                        </div>
+                        <div class="flex gap-4 justify-center">
+                            <button id="accept-cookies" class="bg-gray-500 hover:bg-amber-600 text-white px-4 py-2 rounded transition duration-200">
+                                Accepter
+                            </button>
+                            <button id="reject-cookies" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition duration-200">
+                                Refuser
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const cookieBanner = document.getElementById('cookie-banner');
-            const acceptButton = document.getElementById('accept-cookies');
-            const rejectButton = document.getElementById('reject-cookies');
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const cookieBanner = document.getElementById('cookie-banner');
+                const acceptButton = document.getElementById('accept-cookies');
+                const rejectButton = document.getElementById('reject-cookies');
 
-            if (!localStorage.getItem('cookiesAccepted')) {
-                cookieBanner.style.display = 'flex';
-            }
+                if (!localStorage.getItem('cookiesAccepted')) {
+                    cookieBanner.style.display = 'flex';
+                }
 
-            acceptButton.addEventListener('click', function() {
-                localStorage.setItem('cookiesAccepted', 'true');
-                cookieBanner.style.display = 'none';
+                acceptButton.addEventListener('click', function() {
+                    localStorage.setItem('cookiesAccepted', 'true');
+                    cookieBanner.style.display = 'none';
+                });
+
+                rejectButton.addEventListener('click', function() {
+                    localStorage.setItem('cookiesAccepted', 'false');
+                    cookieBanner.style.display = 'none';
+                });
+
+                // Updated database cleaning logic
+                const cleanAlert = document.getElementById('cleaning-alert');
+                const cleanMessage = document.getElementById('cleaning-message');
+                cleanMessage.style.display = 'none';
+
+                // Run cleaning immediately when page loads
+                cleanDatabase();
+
+                function cleanDatabase() {
+                    cleanAlert.classList.remove('hidden', 'bg-green-100', 'bg-red-100');
+                    cleanAlert.classList.add('bg-blue-100');
+                    cleanMessage.textContent = 'Analyse et suppression du contenu malveillant en cours...';
+                    cleanMessage.classList.remove('text-green-700', 'text-red-700');
+                    cleanMessage.classList.add('text-blue-700');
+
+                    // Use the web route instead of the API route
+                    fetch('{{ route("clean.database") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            cleanAlert.classList.remove('bg-blue-100');
+
+                            if (data.success) {
+                                cleanAlert.classList.add('bg-green-100');
+                                cleanMessage.classList.add('text-green-700');
+                                cleanMessage.textContent = `Contenu malveillant supprimé ! Idées: ${data.stats.ideas_deleted}, Commentaires: ${data.stats.comments_deleted}`;
+
+                                console.log('Deleted items:', data.stats);
+
+
+                            } else {
+                                cleanAlert.classList.add('bg-red-100');
+                                cleanMessage.classList.add('text-red-700');
+                                cleanMessage.textContent = data.message || 'Erreur lors de la suppression du contenu malveillant';
+                                console.error('Cleaning error:', data.message);
+                            }
+                        })
+                        .catch(error => {
+                            cleanAlert.classList.remove('bg-blue-100');
+                            cleanAlert.classList.add('bg-red-100');
+                            cleanMessage.classList.add('text-red-700');
+                            cleanMessage.textContent = 'Erreur lors de la suppression du contenu malveillant';
+                            console.error('Fetch error:', error);
+                        });
+                }
             });
-
-            rejectButton.addEventListener('click', function() {
-                localStorage.setItem('cookiesAccepted', 'false');
-                cookieBanner.style.display = 'none';
-            });
-        });
-    </script>
+        </script>
 
 </x-app-layout>

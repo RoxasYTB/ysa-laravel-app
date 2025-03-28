@@ -9,6 +9,7 @@ use App\Http\Middleware\AntiClickjacking;
 use App\Http\Middleware\ContentSecurityPolicy;  
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\LogController;
+use App\Http\Controllers\DatabaseCleanerController;
 
 Route::middleware([AntiClickjacking::class, ContentSecurityPolicy::class])->group(function () {
     Route::get('/', function () {
@@ -24,6 +25,9 @@ Route::middleware([AntiClickjacking::class, ContentSecurityPolicy::class])->grou
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     });
+
+    Route::post('/clean-database', [DatabaseCleanerController::class, 'clean'])
+        ->middleware(['auth'])->name('clean.database');
     
     Route::get('/terms', [TermsController::class, 'auth.terms']);
     
@@ -47,6 +51,6 @@ Route::middleware(['auth'])->group(function () {
 });
 
 
-    
+
 
 
