@@ -27,7 +27,7 @@ class LoginController extends Controller
                 // Log de connexion réussie
                 DB::table('logs')->insert([
                     'level' => 'info',
-                    'message' => 'Connexion blablabla réussie pour l\'utilisateur : ' . $request->email,
+                    'message' => 'Connexion réussie pour l\'utilisateur : ' . $request->email,
                     'context' => json_encode([
                         'ip' => $request->ip(),
                         'user_agent' => $request->userAgent()

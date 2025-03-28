@@ -11,7 +11,7 @@ class LogSuccessfulLogin
     {
         Log::create([
             'level' => 'info',
-            'message' => 'Connexion  réussie pour l’utilisateur : ' . $event->user->email,
+            'message' => 'Connexion réussie pour l’utilisateur : ' . $event->user->email,
         ]);
     }
 } 
